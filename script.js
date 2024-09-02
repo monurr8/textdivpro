@@ -1,94 +1,60 @@
-const inputText = document.getElementById('input-text');
-const formatBtn = document.getElementById('format-btn');
+const divideBtn = document.getElementById('divide-btn');
 const clearBtn = document.getElementById('clear-btn');
-const output = document.getElementById('output');
+const inputText = document.getElementById('input-text');
+const outputContainer = document.getElementById('output-container');
 
-formatBtn.addEventListener('click', () => {
-  const text = inputText.value.trim();
-  const words = text.split(' ');
-  const maxLineLength = 60;
-  const totalCharacters = words.join(' ').length;
-  const numLines = Math.ceil(totalCharacters / maxLineLength);
-  const formattedText = [];
-  let line = '';
-  let charCount = 0;
+divideBtn.addEventListener('click', () => {
+    const text = inputText.value.trim();
+    const minCharsPerLine = 50;
+    const maxCharsPerLine = 65;
+    const words = text.split(' ');
+    const lines = [];
 
-  words.forEach((word) => {
-    if (charCount + word.length + (line ? 1 : 0) <= maxLineLength) {
-      if (line) {
-        line += ' ';
-        charCount += 1; // Account for the space
-      }
-      line += word;
-      charCount += word.length;
-    } else {
-      formattedText.push(line);
-      line = word;
-      charCount = word.length;
-    }
-  });
+    let line = '';
 
-  if (line !== '') {
-    formattedText.push(line);
-  }
-
-  // Adjust lines to ensure they are more evenly distributed
-  const idealLineLength = Math.ceil(totalCharacters / numLines);
-  let adjustedText = [];
-  let newLine = '';
-  let newLineCharCount = 0;
-
-  formattedText.forEach((line) => {
-    const words = line.split(' ');
-    words.forEach((word) => {
-      if (newLineCharCount + word.length + (newLine ? 1 : 0) <= idealLineLength) {
-        if (newLine) {
-          newLine += ' ';
-          newLineCharCount += 1;
+    words.forEach(word => {
+        // Check if adding the word exceeds the max character limit
+        if (line.length + word.length + 1 > maxCharsPerLine) {
+            if (line.length >= minCharsPerLine) {
+                lines.push(line.trim());
+                line = word + ' ';
+            } else {
+                // If line is less than 50 chars, keep adding words until it meets the minCharsPerLine
+                line += word + ' ';
+            }
+        } else {
+            line += word + ' ';
         }
-        newLine += word;
-        newLineCharCount += word.length;
-      } else {
-        adjustedText.push(newLine);
-        newLine = word;
-        newLineCharCount = word.length;
-      }
     });
 
-    if (newLine !== '') {
-      adjustedText.push(newLine);
-      newLine = '';
-      newLineCharCount = 0;
+    // Push the final line if it has content
+    if (line.trim()) {
+        lines.push(line.trim());
     }
-  });
 
-  const outputHtml = adjustedText.map((line, index) => {
-    return `
-      <div class="line">
-        <span>${line}</span>
-        <button class="copy-btn" data-index="${index}">Copy</button>
-        <span class="char-count">(${line.length} characters)</span>
-      </div>    
-    `;
-  }).join('');
+    const outputHtml = lines.map(line => {
+        const charCount = line.length;
+        return `<div class="output-line"><span>${line}</span><button class="copy-btn" data-clipboard-text="${line}">Copy</button><span class="character-count">${charCount} characters</span></div>`;
+    }).join('');
 
-  output.innerHTML = outputHtml;
+    outputContainer.innerHTML = outputHtml;
 
-  const copyBtns = document.querySelectorAll('.copy-btn');
-
-  copyBtns.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      const index = btn.dataset.index;
-      const text = adjustedText[index];
-      navigator.clipboard.writeText(text).then(() => {
-        console.log('Text copied to clipboard!');
-      });
+    // Add event listener to copy buttons
+    document.querySelectorAll('.copy-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const text = btn.getAttribute('data-clipboard-text');
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+        });
     });
-  });
 });
 
 // Clear button functionality
 clearBtn.addEventListener('click', () => {
-  inputText.value = ''; // Clear the text area
-  output.innerHTML = ''; // Clear the output area
+    inputText.value = '';
+    outputContainer.innerHTML = '';
 });
